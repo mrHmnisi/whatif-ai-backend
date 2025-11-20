@@ -6,14 +6,42 @@ import { extractJson } from "./utils/extractJson.js";
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// 🔐 CORS configuration
+const allowedOrigins = [
+  "http://localhost:5173",           // Vite dev
+  "https://whatifcommunity.co.za",   // your future production domain
+  "https://www.whatifcommunity.co.za",
+  // add more frontends here if needed
+];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // allow non-browser tools / curl (no origin)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn("🚫 Blocked CORS origin:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Preflight support
+app.options("*", cors());
+
 app.use(express.json());
 
 if (!process.env.OPENAI_API_KEY) {
   console.warn("⚠️ OPENAI_API_KEY is not set in .env");
 }
 
-// Simple health check
+// Health check
 app.get("/", (req, res) => {
   res.send("WhatIf AI backend is running ✅");
 });
@@ -49,24 +77,25 @@ app.post("/api/ai", async (req, res) => {
     if (!response.ok) {
       const errorBody = await response.text();
       console.error("❌ OpenAI error:", response.status, errorBody);
-      return res.status(500).json({ error: "OpenAI API error", detail: errorBody });
+      return res
+        .status(502)
+        .json({ error: "OpenAI API error", detail: errorBody });
     }
 
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content ?? "";
 
-    // 🔥 Parse JSON here on the server using shared util
+    // 🔥 Parse JSON on the server
     const meta = extractJson(text);
 
     console.log("📦 Parsed meta:", meta ? "OK" : "❌ No JSON detected");
 
     return res.json({
       success: true,
-      meta,   // parsed JSON (or null)
-      text,   // raw AI text string
+      meta, // parsed JSON (or null)
+      text, // raw AI text
       raw: data, // full OpenAI response for debugging
     });
-
   } catch (err) {
     console.error("💥 [/api/ai] Unexpected error:", err);
     return res.status(500).json({ error: "Server error", detail: String(err) });
