@@ -1,11 +1,7 @@
-// utils/extractJson.js
 export function extractJson(text) {
-  if (!text || typeof text !== "string") {
-    console.warn("extractJson received non-string:", text);
-    return null;
-  }
+  if (!text || typeof text !== "string") return null;
 
-  // Match ```json ... ``` or ``` ... ```
+  // Find ```json ... ``` OR ``` ... ```
   const match = text.match(/```(?:json)?([\s\S]*?)```/i);
   const jsonString = match ? match[1].trim() : text.trim();
 
@@ -18,4 +14,3 @@ export function extractJson(text) {
     return null;
   }
 }
-
