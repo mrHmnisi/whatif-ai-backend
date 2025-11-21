@@ -19,6 +19,7 @@ app.use(
         "http://localhost:5173",
         "https://whatifcommunity.netlify.app",
         "https://www.whatifcommunity.co.za",
+        "https://what-if-community-ap-woc9.bolt.host",
         "https://whatifcommunity.co.za"
       ];
 
