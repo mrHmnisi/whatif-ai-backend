@@ -11,15 +11,32 @@ const port = process.env.PORT || 3000;
 // --- Middleware ---
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",                // local Vite dev
-      "https://whatifcommunity.netlify.app",  // your Netlify front-end (if used)
-      "https://www.whatifcommunity.co.za",    // your domain (future)
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl)
+      if (!origin) return callback(null, true);
+
+      const allowed = [
+        "http://localhost:5173",
+        "https://whatifcommunity.netlify.app",
+        "https://www.whatifcommunity.co.za",
+        "https://whatifcommunity.co.za"
+      ];
+
+      // Automatically allow Bolt/WebContainer preview domains
+      const isBoltPreview = origin.includes(".webcontainer-api.io");
+
+      if (allowed.includes(origin) || isBoltPreview) {
+        return callback(null, true);
+      }
+
+      console.log("❌ CORS blocked origin:", origin);
+      return callback(new Error("Not allowed by CORS: " + origin));
+    },
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 
 app.use(express.json());
 
